@@ -98,9 +98,22 @@ int readInt(OfxParamSetHandle ps, const char *name, int def)
 // ---------------------------------------------------------------------------
 namespace {
 
+void defineInt(OfxParamSetHandle ps, const char *name, const char *label,
+               int def, int mn, int mx, int dmn, int dmx,
+               const char *parent = nullptr, bool secret = false)
+{
+    OfxPropertySetHandle p = defineBase(ps, kOfxParamTypeInteger, name, label, parent, secret);
+    gPropHost->propSetInt(p, kOfxParamPropDefault, 0, def);
+    gPropHost->propSetInt(p, kOfxParamPropMin, 0, mn);
+    gPropHost->propSetInt(p, kOfxParamPropMax, 0, mx);
+    gPropHost->propSetInt(p, kOfxParamPropDisplayMin, 0, dmn);
+    gPropHost->propSetInt(p, kOfxParamPropDisplayMax, 0, dmx);
+}
+
 struct UiState {
     bool isDashed;
     bool isGradient;
+    bool glowOn;
 };
 
 struct Rule {
@@ -109,11 +122,13 @@ struct Rule {
 };
 
 const Rule kRules[] = {
-    { "dashCount",    [](const UiState &s) { return s.isDashed; } },
-    { "dashRatio",    [](const UiState &s) { return s.isDashed; } },
-    { "dashAngle",    [](const UiState &s) { return s.isDashed; } },
-    { "strokeColor2", [](const UiState &s) { return s.isGradient; } },
-    { "gradAngle",    [](const UiState &s) { return s.isGradient; } },
+    { "dashCount",     [](const UiState &s) { return s.isDashed; } },
+    { "dashRatio",     [](const UiState &s) { return s.isDashed; } },
+    { "dashAngle",     [](const UiState &s) { return s.isDashed; } },
+    { "strokeColor2",  [](const UiState &s) { return s.isGradient; } },
+    { "gradAngle",     [](const UiState &s) { return s.isGradient; } },
+    { "glowSize",      [](const UiState &s) { return s.glowOn; } },
+    { "glowIntensity", [](const UiState &s) { return s.glowOn; } },
 };
 
 UiState readUiState(OfxParamSetHandle ps)
@@ -121,6 +136,7 @@ UiState readUiState(OfxParamSetHandle ps)
     UiState s;
     s.isDashed   = readInt(ps, "strokeStyle", 0) != 0;
     s.isGradient = readInt(ps, "colorMode",   0) == 1;
+    s.glowOn     = readInt(ps, "glowOn",      0) != 0;
     return s;
 }
 
@@ -149,7 +165,8 @@ void syncVisibility(OfxParamSetHandle paramSet, const void *instKey)
     const UiState s = readUiState(paramSet);
     std::string sig = std::to_string((unsigned long long)(size_t) instKey) + "|"
                     + (s.isDashed ? "D" : "d")
-                    + (s.isGradient ? "G" : "g");
+                    + (s.isGradient ? "G" : "g")
+                    + (s.glowOn ? "L" : "l");
     if (sig == gVisSig)
         return;
     gVisSig = sig;
@@ -184,10 +201,10 @@ OfxStatus describeInContext(OfxImageEffectHandle effect, OfxPropertySetHandle /*
     defineDouble(ps, "feather",       "Feather (%)", 0.0, 0.0, 100.0, 0.0, 20.0, "strokeGroup", false);
     defineChoice(ps, "blendMode",     "Blend mode", { "Normal", "Add", "Screen", "Multiply", "Overlay" }, 0, false, "strokeGroup");
 
-    // ---- Style (Solid / Dashed / Dotted) --------------------------------
+    // ---- Style (Solid / Dashed) -----------------------------------------
     defineGroup (ps, "styleGroup", "Style", 1, false);
-    defineChoice(ps, "strokeStyle", "Stroke style", { "Solid", "Dashed", "Dotted" }, 0, false, "styleGroup");
-    defineDouble(ps, "dashCount",   "Dash / Dot count", 24.0, 1.0, 200.0, 1.0, 80.0, "styleGroup", true);
+    defineChoice(ps, "strokeStyle", "Stroke style", { "Solid", "Dashed" }, 0, false, "styleGroup");
+    defineInt   (ps, "dashCount",   "Dash count", 24, 1, 200, 1, 80, "styleGroup", true);
     defineDouble(ps, "dashRatio",   "Dash length (%)", 50.0, 0.0, 100.0, 0.0, 100.0, "styleGroup", true);
     defineDouble(ps, "dashAngle",   "Dash angle (deg)", 0.0, -360.0, 360.0, 0.0, 360.0, "styleGroup", true);
 
@@ -200,9 +217,9 @@ OfxStatus describeInContext(OfxImageEffectHandle effect, OfxPropertySetHandle /*
 
     // ---- Glow -----------------------------------------------------------
     defineGroup (ps, "glowGroup", "Glow", 1, false);
-    defineBool  (ps, "glowOn",        "Enable glow", 0, "glowGroup", false);
-    defineDouble(ps, "glowSize",      "Glow size (%)", 2.0, 0.0, 50.0, 0.0, 10.0, "glowGroup", false);
-    defineDouble(ps, "glowIntensity", "Glow intensity (%)", 60.0, 0.0, 100.0, 0.0, 100.0, "glowGroup", false);
+    defineBool  (ps, "glowOn",        "Glow", 0, "glowGroup", false);
+    defineDouble(ps, "glowSize",      "Glow size (%)", 2.0, 0.0, 50.0, 0.0, 10.0, "glowGroup", true);
+    defineDouble(ps, "glowIntensity", "Glow intensity (%)", 60.0, 0.0, 100.0, 0.0, 100.0, "glowGroup", true);
 
     return kOfxStatOK;
 }

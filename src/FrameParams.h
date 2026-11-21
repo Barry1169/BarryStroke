@@ -12,9 +12,9 @@ struct FrameParams {
     double feather       = 0.0;            // percent of frame height (the stroke softness)
     int    blendMode     = kBlendNormal;   // 0 Normal, 1 Add, 2 Screen, 3 Multiply, 4 Overlay
 
-    // Style (Solid / Dashed / Dotted)
-    int    strokeStyle   = 0;              // 0 Solid, 1 Dashed, 2 Dotted
-    double dashCount     = 24.0;           // number of dashes/dots around the subject
+    // Style (Solid / Dashed)
+    int    strokeStyle   = 0;              // 0 Solid, 1 Dashed
+    int    dashCount     = 24;             // number of dashes around the subject
     double dashRatio     = 50.0;           // duty cycle percent (0..100)
     double dashAngle     = 0.0;            // rotation angle in degrees
 

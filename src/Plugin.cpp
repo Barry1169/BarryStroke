@@ -75,7 +75,7 @@ static OfxStatus onInstanceChanged(OfxImageEffectHandle effect, OfxPropertySetHa
     OfxParamSetHandle ps = nullptr;
     gEffectHost->getParamSet(effect, &ps);
 
-    if (strcmp(changed, "strokeStyle") == 0 || strcmp(changed, "colorMode") == 0) {
+    if (strcmp(changed, "strokeStyle") == 0 || strcmp(changed, "colorMode") == 0 || strcmp(changed, "glowOn") == 0) {
         gVisSig.clear();
         applyVisibility(ps);
         return kOfxStatOK;

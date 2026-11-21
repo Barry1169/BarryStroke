@@ -184,33 +184,30 @@ OfxStatus render(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
                                     rgb[2] = (float)(strokeF[2] * (1.0 - t) + strokeF2[2] * t);
                                 }
 
+                                // Dash mask (1.0 = visible, 0.0 = gap)
+                                float dashMask = 1.0f;
+                                if (fp.strokeStyle != 0) {
+                                    if (dashDuty <= 0.0) {
+                                        dashMask = 0.0f;
+                                    } else if (dashDuty < 1.0) {
+                                        double theta = std::atan2((double) y - cy, (double)(x1 + x) - cx) - dashRad;
+                                        double u = (theta / kTwoPi + 0.5) * (double) fp.dashCount;
+                                        double frac = u - std::floor(u);
+                                        if (frac > dashDuty) dashMask = 0.0f;
+                                    }
+                                }
+
                                 // Glow (outer soft bloom around the stroke)
-                                if (fp.glowOn && glowSize > 0.0 && glowOpac > 0.0f) {
+                                if (fp.glowOn && glowSize > 0.0 && glowOpac > 0.0f && dashMask > 0.0f) {
                                     double glowDist = std::fabs(sdist - strokeCentre(strokeW, fp.strokePos)) - strokeW * 0.5;
                                     if (glowDist < glowSize) {
                                         double g = 1.0 - std::max(0.0, glowDist) / glowSize;
-                                        float ga = (float)(g * g) * glowOpac;
+                                        float ga = (float)(g * g) * glowOpac * dashMask;
                                         compositeStrokeBlend(dp, rgb, ga, fp.blendMode);
                                     }
                                 }
 
-                                float sa = strokeAlpha(sdist, strokeW, fp.strokePos, strokeSoft, strokeOpac);
-                                if (sa > 0.0f && fp.strokeStyle != 0) {
-                                    if (dashDuty <= 0.0) {
-                                        sa = 0.0f;
-                                    } else if (dashDuty < 1.0) {
-                                        double theta = std::atan2((double) y - cy, (double)(x1 + x) - cx) - dashRad;
-                                        double u = (theta / kTwoPi + 0.5) * fp.dashCount;
-                                        double frac = u - std::floor(u);
-                                        if (fp.strokeStyle == 1) {
-                                            if (frac > dashDuty) sa = 0.0f;
-                                        } else if (fp.strokeStyle == 2) {
-                                            double d = std::fabs(frac - 0.5) * 2.0;
-                                            if (d > dashDuty) sa = 0.0f;
-                                            else sa *= (float) std::sqrt(std::max(0.0, 1.0 - (d / dashDuty) * (d / dashDuty)));
-                                        }
-                                    }
-                                }
+                                float sa = strokeAlpha(sdist, strokeW, fp.strokePos, strokeSoft, strokeOpac) * dashMask;
                                 compositeStrokeBlend(dp, rgb, sa, fp.blendMode);
                             }
                             sp += 4;

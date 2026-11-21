@@ -39,7 +39,7 @@ FrameParams readFrameParams(OfxParamSetHandle ps, double t)
     getInt   (ps, "blendMode",     t, p.blendMode);
 
     getInt   (ps, "strokeStyle",   t, p.strokeStyle);
-    getDouble(ps, "dashCount",     t, p.dashCount);
+    getInt   (ps, "dashCount",     t, p.dashCount);
     getDouble(ps, "dashRatio",     t, p.dashRatio);
     getDouble(ps, "dashAngle",     t, p.dashAngle);
 
