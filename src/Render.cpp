@@ -51,12 +51,10 @@ OfxStatus render(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
     // Units: percents become frame units. The render scale maps them to pixels.
     double feather  = fp.feather;
     double strokeW  = fp.strokeW;
-    double strokeGap = fp.strokeGap;
     double glowSize = fp.glowOn ? fp.glowSize : 0.0;
     if (ext[0] > 0.0 && ext[1] > 0.0) {
         feather   *= ext[1] / 100.0;
         strokeW   *= ext[1] / 100.0;
-        strokeGap *= ext[1] / 100.0;
         glowSize  *= ext[1] / 100.0;
     }
 
@@ -104,7 +102,7 @@ OfxStatus render(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
             // Stroke geometry, in frame units. The stroke follows the alpha edge.
             const double strokeSoft = std::max(feather, 1.0 / rscale[0]);
             const double band = strokeBand(strokeW, fp.strokePos, strokeSoft, true);
-            const double maxDistFrame = band + strokeSoft + std::fabs(strokeGap) + glowSize;
+            const double maxDistFrame = band + strokeSoft + glowSize;
             const double maxDistPx = maxDistFrame * rscale[0];
 
             // Distance field over the render window expanded by the stroke reach,
@@ -139,7 +137,7 @@ OfxStatus render(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
                     // No alpha edge in view (fully visible or fully empty): no stroke.
                     if (anyIn && anyOut) {
                         dist.assign((size_t) ew * (size_t) eh, 0.0f);
-                        alphaDistance(mask.data(), ew, eh, (float) (maxDistPx + 1.0), dist.data(), (float)(fp.roundness / 100.0));
+                        alphaDistance(mask.data(), ew, eh, (float) (maxDistPx + 1.0), dist.data(), 0.0f);
                         haveDist = true;
                     }
                 }
@@ -174,7 +172,6 @@ OfxStatus render(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
                             if (distRow && distRow[x] < (float) maxDistPx) {
                                 // Signed distance to the alpha edge: positive inside, negative outside.
                                 double sdist = (maskRow[x] ? (double) distRow[x] : -(double) distRow[x]) / rscale[0];
-                                double sdistShifted = sdist + strokeGap;
 
                                 float rgb[3] = { strokeF[0], strokeF[1], strokeF[2] };
                                 if (fp.colorMode == 1) {
@@ -189,7 +186,7 @@ OfxStatus render(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
 
                                 // Glow (outer soft bloom around the stroke)
                                 if (fp.glowOn && glowSize > 0.0 && glowOpac > 0.0f) {
-                                    double glowDist = std::fabs(sdistShifted - strokeCentre(strokeW, fp.strokePos)) - strokeW * 0.5;
+                                    double glowDist = std::fabs(sdist - strokeCentre(strokeW, fp.strokePos)) - strokeW * 0.5;
                                     if (glowDist < glowSize) {
                                         double g = 1.0 - std::max(0.0, glowDist) / glowSize;
                                         float ga = (float)(g * g) * glowOpac;
@@ -197,7 +194,7 @@ OfxStatus render(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
                                     }
                                 }
 
-                                float sa = strokeAlpha(sdistShifted, strokeW, fp.strokePos, strokeSoft, strokeOpac);
+                                float sa = strokeAlpha(sdist, strokeW, fp.strokePos, strokeSoft, strokeOpac);
                                 if (sa > 0.0f && fp.strokeStyle != 0) {
                                     if (dashDuty <= 0.0) {
                                         sa = 0.0f;

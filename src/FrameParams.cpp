@@ -34,11 +34,9 @@ FrameParams readFrameParams(OfxParamSetHandle ps, double t)
     int align = 1;
     getInt(ps, "strokeAlign", t, align);
     p.strokePos = (align == 0) ? kStrokeInside : (align == 1) ? kStrokeCenter : kStrokeOutside;
-    getDouble(ps, "strokeGap",     t, p.strokeGap);
     getDouble(ps, "strokeOpacity", t, p.strokeOpacity);
     getDouble(ps, "feather",       t, p.feather);
     getInt   (ps, "blendMode",     t, p.blendMode);
-    getDouble(ps, "roundness",     t, p.roundness);
 
     getInt   (ps, "strokeStyle",   t, p.strokeStyle);
     getDouble(ps, "dashCount",     t, p.dashCount);

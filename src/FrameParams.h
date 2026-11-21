@@ -8,11 +8,9 @@ struct FrameParams {
     // Stroke
     double strokeW       = 1.0;            // percent of frame height
     int    strokePos     = kStrokeCenter;  // maths numbers: 0 Center, 1 Inside, 2 Outside
-    double strokeGap     = 0.0;            // percent of frame height (positive = outward)
     double strokeOpacity = 100.0;          // percent
     double feather       = 0.0;            // percent of frame height (the stroke softness)
     int    blendMode     = kBlendNormal;   // 0 Normal, 1 Add, 2 Screen, 3 Multiply, 4 Overlay
-    double roundness     = 0.0;            // 0 = Sharp (Chebyshev), 100 = Round (Euclidean)
 
     // Style (Solid / Dashed / Dotted)
     int    strokeStyle   = 0;              // 0 Solid, 1 Dashed, 2 Dotted
