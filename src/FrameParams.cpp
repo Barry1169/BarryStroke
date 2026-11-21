@@ -3,7 +3,6 @@
 
 namespace {
 
-// Read one parameter at the given time. If the parameter is missing, the value is left as it was.
 void getDouble(OfxParamSetHandle ps, const char *name, double t, double &v)
 {
     OfxParamHandle h = nullptr;
@@ -31,14 +30,28 @@ FrameParams readFrameParams(OfxParamSetHandle ps, double t)
 {
     FrameParams p;
 
-    getDouble(ps, "strokeWidth",  t, p.strokeW);
-    getRGB   (ps, "strokeColor",  t, p.strokeRGB);
-    getDouble(ps, "strokeOpacity", t, p.strokeOpacity);
-    // strokeAlign order is Inside, Center, Outside. The stroke maths uses 0 Center, 1 Inside, 2 Outside.
+    getDouble(ps, "strokeWidth",   t, p.strokeW);
     int align = 1;
     getInt(ps, "strokeAlign", t, align);
     p.strokePos = (align == 0) ? kStrokeInside : (align == 1) ? kStrokeCenter : kStrokeOutside;
+    getDouble(ps, "strokeGap",     t, p.strokeGap);
+    getDouble(ps, "strokeOpacity", t, p.strokeOpacity);
+    getDouble(ps, "feather",       t, p.feather);
+    getInt   (ps, "blendMode",     t, p.blendMode);
 
-    getDouble(ps, "feather", t, p.feather);
+    getInt   (ps, "strokeStyle",   t, p.strokeStyle);
+    getDouble(ps, "dashCount",     t, p.dashCount);
+    getDouble(ps, "dashRatio",     t, p.dashRatio);
+
+    getInt   (ps, "colorMode",     t, p.colorMode);
+    getRGB   (ps, "strokeColor",   t, p.strokeRGB);
+    getRGB   (ps, "strokeColor2",  t, p.strokeRGB2);
+    getDouble(ps, "gradAngle",     t, p.gradAngle);
+    getDouble(ps, "colorSpeed",    t, p.colorSpeed);
+
+    getInt   (ps, "glowOn",        t, p.glowOn);
+    getDouble(ps, "glowSize",      t, p.glowSize);
+    getDouble(ps, "glowIntensity", t, p.glowIntensity);
+
     return p;
 }

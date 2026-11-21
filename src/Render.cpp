@@ -49,15 +49,29 @@ OfxStatus render(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
     OfxStatus result = kOfxStatFailed;
 
     // Units: percents become frame units. The render scale maps them to pixels.
-    double feather = fp.feather;
-    double strokeW = fp.strokeW;
+    double feather  = fp.feather;
+    double strokeW  = fp.strokeW;
+    double strokeGap = fp.strokeGap;
+    double glowSize = fp.glowOn ? fp.glowSize : 0.0;
     if (ext[0] > 0.0 && ext[1] > 0.0) {
-        feather *= ext[1] / 100.0;   // Feather is percent of the frame height
+        feather   *= ext[1] / 100.0;
+        strokeW   *= ext[1] / 100.0;
+        strokeGap *= ext[1] / 100.0;
+        glowSize  *= ext[1] / 100.0;
     }
-    strokeW *= ext[1] / 100.0;       // stroke width: percent of frame height
 
     const float strokeOpac = (float) std::max(0.0, std::min(1.0, fp.strokeOpacity / 100.0));
-    const float strokeF[3] = { (float) fp.strokeRGB[0], (float) fp.strokeRGB[1], (float) fp.strokeRGB[2] };
+    const float glowOpac   = (float) std::max(0.0, std::min(1.0, fp.glowIntensity / 100.0));
+    const float strokeF[3]  = { (float) fp.strokeRGB[0],  (float) fp.strokeRGB[1],  (float) fp.strokeRGB[2] };
+    const float strokeF2[3] = { (float) fp.strokeRGB2[0], (float) fp.strokeRGB2[1], (float) fp.strokeRGB2[2] };
+
+    float animRGB[3] = { strokeF[0], strokeF[1], strokeF[2] };
+    if (fp.colorMode == 2) {
+        hueShiftRGB(strokeF, (float)(time * fp.colorSpeed * 0.04), animRGB);
+    }
+    const double gradRad = fp.gradAngle * 3.14159265358979323846 / 180.0;
+    const double gradCos = std::cos(gradRad);
+    const double gradSin = std::sin(gradRad);
 
     if (srcSt == kOfxStatOK && dstSt == kOfxStatOK) {
         // Read the pixel pointer, bounds, row stride and depth of both images.
@@ -93,7 +107,7 @@ OfxStatus render(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
             // Stroke geometry, in frame units. The stroke follows the alpha edge.
             const double strokeSoft = std::max(feather, 1.0 / rscale[0]);
             const double band = strokeBand(strokeW, fp.strokePos, strokeSoft, true);
-            const double maxDistFrame = band + strokeSoft;   // beyond this the stroke alpha is 0
+            const double maxDistFrame = band + strokeSoft + std::fabs(strokeGap) + glowSize;
             const double maxDistPx = maxDistFrame * rscale[0];
 
             // Distance field over the render window expanded by the stroke reach,
@@ -150,6 +164,11 @@ OfxStatus render(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
                             ? &dist[(size_t)(y - ey1) * (size_t) ew + (size_t)(x1 - ex1)] : nullptr;
                         const unsigned char *maskRow = haveDist
                             ? &mask[(size_t)(y - ey1) * (size_t) ew + (size_t)(x1 - ex1)] : nullptr;
+                        const double cx = 0.5 * (x1 + x2);
+                        const double cy = 0.5 * (y1 + y2);
+                        const double halfSpan = std::max(1.0, 0.5 * std::hypot((double)(x2 - x1), (double)(y2 - y1)));
+                        const double dashDuty = std::max(0.05, std::min(0.95, fp.dashRatio / 100.0));
+                        const double kTwoPi = 6.28318530717958647692;
                         for (int x = 0; x < x2 - x1; ++x) {
                             dp[0] = sp[0];
                             dp[1] = sp[1];
@@ -158,8 +177,45 @@ OfxStatus render(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
                             if (distRow && distRow[x] < (float) maxDistPx) {
                                 // Signed distance to the alpha edge: positive inside, negative outside.
                                 double sdist = (maskRow[x] ? (double) distRow[x] : -(double) distRow[x]) / rscale[0];
-                                float sa = strokeAlpha(sdist, strokeW, fp.strokePos, strokeSoft, strokeOpac);
-                                compositeStroke(dp, strokeF, sa);
+                                double sdistShifted = sdist + strokeGap;
+
+                                float rgb[3] = { animRGB[0], animRGB[1], animRGB[2] };
+                                if (fp.colorMode == 1) {
+                                    double px = (double)(x1 + x) - cx;
+                                    double py = (double) y - cy;
+                                    double t = 0.5 + 0.5 * (px * gradCos + py * gradSin) / halfSpan;
+                                    t = std::max(0.0, std::min(1.0, t));
+                                    rgb[0] = (float)(strokeF[0] * (1.0 - t) + strokeF2[0] * t);
+                                    rgb[1] = (float)(strokeF[1] * (1.0 - t) + strokeF2[1] * t);
+                                    rgb[2] = (float)(strokeF[2] * (1.0 - t) + strokeF2[2] * t);
+                                }
+
+                                // Glow (outer soft bloom around the stroke)
+                                if (fp.glowOn && glowSize > 0.0 && glowOpac > 0.0f) {
+                                    double glowDist = std::fabs(sdistShifted - strokeCentre(strokeW, fp.strokePos)) - strokeW * 0.5;
+                                    if (glowDist < glowSize) {
+                                        double g = 1.0 - std::max(0.0, glowDist) / glowSize;
+                                        float ga = (float)(g * g) * glowOpac;
+                                        compositeStrokeBlend(dp, rgb, ga, fp.blendMode);
+                                    }
+                                }
+
+                                float sa = strokeAlpha(sdistShifted, strokeW, fp.strokePos, strokeSoft, strokeOpac);
+                                if (sa > 0.0f && fp.strokeStyle != 0) {
+                                    double theta = std::atan2((double) y - cy, (double)(x1 + x) - cx);
+                                    double u = (theta / kTwoPi + 0.5) * fp.dashCount;
+                                    double frac = u - std::floor(u);
+                                    if (fp.strokeStyle == 1) {
+                                        // Dashed
+                                        if (frac > dashDuty) sa = 0.0f;
+                                    } else if (fp.strokeStyle == 2) {
+                                        // Dotted
+                                        double d = std::fabs(frac - 0.5) * 2.0;
+                                        if (d > dashDuty) sa = 0.0f;
+                                        else sa *= (float) std::sqrt(std::max(0.0, 1.0 - (d / dashDuty) * (d / dashDuty)));
+                                    }
+                                }
+                                compositeStrokeBlend(dp, rgb, sa, fp.blendMode);
                             }
                             sp += 4;
                             dp += 4;

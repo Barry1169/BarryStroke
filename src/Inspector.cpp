@@ -177,11 +177,32 @@ OfxStatus describeInContext(OfxImageEffectHandle effect, OfxPropertySetHandle /*
     // ---- Stroke ---------------------------------------------------------
     // Always active as soon as the effect is applied.
     defineGroup (ps, "strokeGroup", "Stroke settings", 1, false);
-    defineDouble(ps, "strokeWidth", "Stroke width (%)", 1.0, 0.0, 100.0, 0.0, 5.0, "strokeGroup", false);
-    defineChoice(ps, "strokeAlign", "Stroke position", { "Inside", "Center", "Outside" }, 1, false, "strokeGroup");
-    defineRGB   (ps, "strokeColor", "Stroke color", 1.0, 1.0, 1.0, "strokeGroup", false);
+    defineDouble(ps, "strokeWidth",   "Stroke width (%)", 1.0, 0.0, 100.0, 0.0, 5.0, "strokeGroup", false);
+    defineChoice(ps, "strokeAlign",   "Stroke position", { "Inside", "Center", "Outside" }, 1, false, "strokeGroup");
+    defineDouble(ps, "strokeGap",     "Gap / Offset (%)", 0.0, -50.0, 50.0, -5.0, 5.0, "strokeGroup", false);
     defineDouble(ps, "strokeOpacity", "Stroke opacity (%)", 100.0, 0.0, 100.0, 0.0, 100.0, "strokeGroup", false);
-    defineDouble(ps, "feather", "Feather (%)", 0.0, 0.0, 100.0, 0.0, 20.0, "strokeGroup", false);
+    defineDouble(ps, "feather",       "Feather (%)", 0.0, 0.0, 100.0, 0.0, 20.0, "strokeGroup", false);
+    defineChoice(ps, "blendMode",     "Blend mode", { "Normal", "Add", "Screen", "Multiply", "Overlay" }, 0, false, "strokeGroup");
+
+    // ---- Style (Solid / Dashed / Dotted) --------------------------------
+    defineGroup (ps, "styleGroup", "Style", 1, false);
+    defineChoice(ps, "strokeStyle", "Stroke style", { "Solid", "Dashed", "Dotted" }, 0, false, "styleGroup");
+    defineDouble(ps, "dashCount",   "Dash / Dot count", 24.0, 2.0, 200.0, 2.0, 80.0, "styleGroup", false);
+    defineDouble(ps, "dashRatio",   "Dash length (%)", 50.0, 10.0, 90.0, 10.0, 90.0, "styleGroup", false);
+
+    // ---- Color (Solid / Gradient / Animated) ----------------------------
+    defineGroup (ps, "colorGroup", "Color", 1, false);
+    defineChoice(ps, "colorMode",   "Color mode", { "Solid", "Gradient", "Animated" }, 0, false, "colorGroup");
+    defineRGB   (ps, "strokeColor", "Color 1", 1.0, 1.0, 1.0, "colorGroup", false);
+    defineRGB   (ps, "strokeColor2","Color 2", 0.0, 0.6, 1.0, "colorGroup", false);
+    defineDouble(ps, "gradAngle",   "Gradient angle (deg)", 0.0, -360.0, 360.0, 0.0, 360.0, "colorGroup", false);
+    defineDouble(ps, "colorSpeed",  "Animation speed", 1.0, -10.0, 10.0, 0.0, 5.0, "colorGroup", false);
+
+    // ---- Glow -----------------------------------------------------------
+    defineGroup (ps, "glowGroup", "Glow", 1, false);
+    defineBool  (ps, "glowOn",        "Enable glow", 0, "glowGroup", false);
+    defineDouble(ps, "glowSize",      "Glow size (%)", 2.0, 0.0, 50.0, 0.0, 10.0, "glowGroup", false);
+    defineDouble(ps, "glowIntensity", "Glow intensity (%)", 60.0, 0.0, 100.0, 0.0, 100.0, "glowGroup", false);
 
     return kOfxStatOK;
 }
