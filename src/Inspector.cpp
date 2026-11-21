@@ -98,8 +98,22 @@ int readInt(OfxParamSetHandle ps, const char *name, int def)
 // ---------------------------------------------------------------------------
 namespace {
 
+void defineInt(OfxParamSetHandle ps, const char *name, const char *label,
+               int def, int mn, int mx, int dmn, int dmx,
+               const char *parent = nullptr, bool secret = false)
+{
+    OfxPropertySetHandle p = defineBase(ps, kOfxParamTypeInteger, name, label, parent, secret);
+    gPropHost->propSetInt(p, kOfxParamPropDefault, 0, def);
+    gPropHost->propSetInt(p, kOfxParamPropMin, 0, mn);
+    gPropHost->propSetInt(p, kOfxParamPropMax, 0, mx);
+    gPropHost->propSetInt(p, kOfxParamPropDisplayMin, 0, dmn);
+    gPropHost->propSetInt(p, kOfxParamPropDisplayMax, 0, dmx);
+}
+
 struct UiState {
-    bool strokeOn;
+    bool isDashed;
+    bool isGradient;
+    bool glowOn;
 };
 
 struct Rule {
@@ -108,19 +122,21 @@ struct Rule {
 };
 
 const Rule kRules[] = {
-    // Stroke
-    { "strokeGroup",  [](const UiState &s) { return s.strokeOn; } },
-    { "strokeWidth",  [](const UiState &s) { return s.strokeOn; } },
-    { "strokeAlign",  [](const UiState &s) { return s.strokeOn; } },
-    { "strokeColor",  [](const UiState &s) { return s.strokeOn; } },
-    { "strokeOpacity", [](const UiState &s) { return s.strokeOn; } },
-    { "feather",      [](const UiState &s) { return s.strokeOn; } },
+    { "dashCount",     [](const UiState &s) { return s.isDashed; } },
+    { "dashRatio",     [](const UiState &s) { return s.isDashed; } },
+    { "dashAngle",     [](const UiState &s) { return s.isDashed; } },
+    { "strokeColor2",  [](const UiState &s) { return s.isGradient; } },
+    { "gradAngle",     [](const UiState &s) { return s.isGradient; } },
+    { "glowSize",      [](const UiState &s) { return s.glowOn; } },
+    { "glowIntensity", [](const UiState &s) { return s.glowOn; } },
 };
 
 UiState readUiState(OfxParamSetHandle ps)
 {
     UiState s;
-    s.strokeOn = readInt(ps, "strokeOn", 1) != 0;
+    s.isDashed   = readInt(ps, "strokeStyle", 0) != 0;
+    s.isGradient = readInt(ps, "colorMode",   0) == 1;
+    s.glowOn     = readInt(ps, "glowOn",      0) != 0;
     return s;
 }
 
@@ -148,7 +164,9 @@ void syncVisibility(OfxParamSetHandle paramSet, const void *instKey)
 {
     const UiState s = readUiState(paramSet);
     std::string sig = std::to_string((unsigned long long)(size_t) instKey) + "|"
-                    + (s.strokeOn ? "S" : "s");
+                    + (s.isDashed ? "D" : "d")
+                    + (s.isGradient ? "G" : "g")
+                    + (s.glowOn ? "L" : "l");
     if (sig == gVisSig)
         return;
     gVisSig = sig;
@@ -177,11 +195,31 @@ OfxStatus describeInContext(OfxImageEffectHandle effect, OfxPropertySetHandle /*
     // ---- Stroke ---------------------------------------------------------
     // Always active as soon as the effect is applied.
     defineGroup (ps, "strokeGroup", "Stroke settings", 1, false);
-    defineDouble(ps, "strokeWidth", "Stroke width (%)", 1.0, 0.0, 100.0, 0.0, 5.0, "strokeGroup", false);
-    defineChoice(ps, "strokeAlign", "Stroke position", { "Inside", "Center", "Outside" }, 1, false, "strokeGroup");
-    defineRGB   (ps, "strokeColor", "Stroke color", 1.0, 1.0, 1.0, "strokeGroup", false);
+    defineDouble(ps, "strokeWidth",   "Stroke width (%)", 1.0, 0.0, 100.0, 0.0, 5.0, "strokeGroup", false);
+    defineChoice(ps, "strokeAlign",   "Stroke position", { "Inside", "Center", "Outside" }, 1, false, "strokeGroup");
     defineDouble(ps, "strokeOpacity", "Stroke opacity (%)", 100.0, 0.0, 100.0, 0.0, 100.0, "strokeGroup", false);
-    defineDouble(ps, "feather", "Feather (%)", 0.0, 0.0, 100.0, 0.0, 20.0, "strokeGroup", false);
+    defineDouble(ps, "feather",       "Feather (%)", 0.0, 0.0, 100.0, 0.0, 20.0, "strokeGroup", false);
+    defineChoice(ps, "blendMode",     "Blend mode", { "Normal", "Add", "Screen", "Multiply", "Overlay" }, 0, false, "strokeGroup");
+
+    // ---- Style (Solid / Dashed) -----------------------------------------
+    defineGroup (ps, "styleGroup", "Style", 1, false);
+    defineChoice(ps, "strokeStyle", "Stroke style", { "Solid", "Dashed" }, 0, false, "styleGroup");
+    defineInt   (ps, "dashCount",   "Dash count", 24, 1, 200, 1, 80, "styleGroup", true);
+    defineDouble(ps, "dashRatio",   "Dash length (%)", 50.0, 0.0, 100.0, 0.0, 100.0, "styleGroup", true);
+    defineDouble(ps, "dashAngle",   "Dash angle (deg)", 0.0, -360.0, 360.0, 0.0, 360.0, "styleGroup", true);
+
+    // ---- Color (Solid / Gradient) ---------------------------------------
+    defineGroup (ps, "colorGroup", "Color", 1, false);
+    defineChoice(ps, "colorMode",   "Color mode", { "Solid", "Gradient" }, 0, false, "colorGroup");
+    defineRGB   (ps, "strokeColor", "Color 1", 1.0, 1.0, 1.0, "colorGroup", false);
+    defineRGB   (ps, "strokeColor2","Color 2", 0.0, 0.6, 1.0, "colorGroup", true);
+    defineDouble(ps, "gradAngle",   "Gradient angle (deg)", 0.0, -360.0, 360.0, 0.0, 360.0, "colorGroup", true);
+
+    // ---- Glow -----------------------------------------------------------
+    defineGroup (ps, "glowGroup", "Glow", 1, false);
+    defineBool  (ps, "glowOn",        "Glow", 0, "glowGroup", false);
+    defineDouble(ps, "glowSize",      "Glow size (%)", 2.0, 0.0, 50.0, 0.0, 10.0, "glowGroup", true);
+    defineDouble(ps, "glowIntensity", "Glow intensity (%)", 60.0, 0.0, 100.0, 0.0, 100.0, "glowGroup", true);
 
     return kOfxStatOK;
 }

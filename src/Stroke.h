@@ -55,3 +55,80 @@ static inline void compositeStroke(float *dp, const float *strokeRGB, float sa)
     dp[2] = dp[2] * inv + strokeRGB[2] * sa;
     dp[3] = dp[3] * inv + sa;
 }
+
+enum BlendMode {
+    kBlendNormal = 0,
+    kBlendAdd = 1,
+    kBlendScreen = 2,
+    kBlendMultiply = 3,
+    kBlendOverlay = 4
+};
+
+static inline void compositeStrokeBlend(float *dp, const float *strokeRGB, float sa, int mode)
+{
+    if (sa <= 0.0f)
+        return;
+    if (mode == kBlendNormal) {
+        compositeStroke(dp, strokeRGB, sa);
+        return;
+    }
+    float da = dp[3];
+    float inv = 1.0f - sa;
+    for (int c = 0; c < 3; ++c) {
+        float bg = (da > 1e-5f) ? std::min(1.0f, std::max(0.0f, dp[c] / da)) : 0.0f;
+        float fg = strokeRGB[c];
+        float blended = fg;
+        if (mode == kBlendAdd) {
+            blended = std::min(1.0f, bg + fg);
+        } else if (mode == kBlendScreen) {
+            blended = 1.0f - (1.0f - bg) * (1.0f - fg);
+        } else if (mode == kBlendMultiply) {
+            blended = bg * fg;
+        } else if (mode == kBlendOverlay) {
+            blended = (bg < 0.5f) ? (2.0f * bg * fg) : (1.0f - 2.0f * (1.0f - bg) * (1.0f - fg));
+        }
+        // Composite blended over premultiplied background
+        float outStraight = bg * (1.0f - sa) + blended * sa;
+        float outAlpha = da * inv + sa;
+        dp[c] = (da > 1e-5f) ? (dp[c] * inv + blended * sa * da + fg * sa * (1.0f - da))
+                             : (fg * sa);
+        (void) outStraight;
+        (void) outAlpha;
+    }
+    dp[3] = da * inv + sa;
+}
+
+// Shift hue of an RGB color [0..1] by angle in turns [0..1].
+static inline void hueShiftRGB(const float *inRGB, float turns, float *outRGB)
+{
+    float r = inRGB[0], g = inRGB[1], b = inRGB[2];
+    float cmax = std::max(r, std::max(g, b));
+    float cmin = std::min(r, std::min(g, b));
+    float delta = cmax - cmin;
+    float h = 0.0f;
+    if (delta > 1e-6f) {
+        if (cmax == r)      h = std::fmod((g - b) / delta, 6.0f);
+        else if (cmax == g) h = (b - r) / delta + 2.0f;
+        else                h = (r - g) / delta + 4.0f;
+        h /= 6.0f;
+        if (h < 0.0f) h += 1.0f;
+    }
+    float s = (cmax > 1e-6f) ? (delta / cmax) : 0.0f;
+    float v = cmax;
+    h = std::fmod(h + turns, 1.0f);
+    if (h < 0.0f) h += 1.0f;
+    float c = v * s;
+    float x = c * (1.0f - std::fabs(std::fmod(h * 6.0f, 2.0f) - 1.0f));
+    float m = v - c;
+    float r1 = 0, g1 = 0, b1 = 0;
+    int hi = (int)(h * 6.0f) % 6;
+    if      (hi == 0) { r1 = c; g1 = x; b1 = 0; }
+    else if (hi == 1) { r1 = x; g1 = c; b1 = 0; }
+    else if (hi == 2) { r1 = 0; g1 = c; b1 = x; }
+    else if (hi == 3) { r1 = 0; g1 = x; b1 = c; }
+    else if (hi == 4) { r1 = x; g1 = 0; b1 = c; }
+    else              { r1 = c; g1 = 0; b1 = x; }
+    outRGB[0] = r1 + m;
+    outRGB[1] = g1 + m;
+    outRGB[2] = b1 + m;
+}
