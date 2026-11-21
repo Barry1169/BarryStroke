@@ -99,7 +99,6 @@ OfxStatus render(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
             // Distance field over the render window expanded by the stroke reach,
             // so pixels near the window edge still get a correct distance.
             std::vector<unsigned char> mask;
-            std::vector<float> alphaBuf;
             std::vector<float> dist;
             int ex1 = x1, ey1 = y1, ew = 0;
             bool haveDist = false;
@@ -113,19 +112,15 @@ OfxStatus render(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
                 int eh = ey2 - ey1;
                 if (ew > 0 && eh > 0) {
                     mask.assign((size_t) ew * (size_t) eh, 0);
-                    alphaBuf.assign((size_t) ew * (size_t) eh, 0.0f);
                     bool anyIn = false, anyOut = false;
                     for (int y = ey1; y < ey2; ++y) {
                         const float *sp = (const float *) ((const char *) srcData
                             + (std::ptrdiff_t)(y - srcB[1]) * srcRow
                             + (std::ptrdiff_t)(ex1 - srcB[0]) * bpp);
                         unsigned char *mp = &mask[(size_t)(y - ey1) * (size_t) ew];
-                        float *ap = &alphaBuf[(size_t)(y - ey1) * (size_t) ew];
                         for (int x = 0; x < ew; ++x) {
-                            float a = sp[3];
-                            bool inside = a > 0.5f;
+                            bool inside = sp[3] > 0.5f;
                             mp[x] = inside ? 1 : 0;
-                            ap[x] = a;
                             if (inside) anyIn = true; else anyOut = true;
                             sp += 4;
                         }
@@ -133,7 +128,7 @@ OfxStatus render(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
                     // No alpha edge in view (fully visible or fully empty): no stroke.
                     if (anyIn && anyOut) {
                         dist.assign((size_t) ew * (size_t) eh, 0.0f);
-                        alphaDistanceSmooth(alphaBuf.data(), ew, eh, (float) (maxDistPx + 1.0), dist.data());
+                        alphaDistance(mask.data(), ew, eh, (float) (maxDistPx + 1.0), dist.data());
                         haveDist = true;
                     }
                 }
