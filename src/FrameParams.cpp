@@ -38,7 +38,7 @@ FrameParams readFrameParams(OfxParamSetHandle ps, double t)
     getDouble(ps, "strokeOpacity", t, p.strokeOpacity);
     getDouble(ps, "feather",       t, p.feather);
     getInt   (ps, "blendMode",     t, p.blendMode);
-    getInt   (ps, "cornerStyle",   t, p.cornerStyle);
+    getDouble(ps, "roundness",     t, p.roundness);
 
     getInt   (ps, "strokeStyle",   t, p.strokeStyle);
     getDouble(ps, "dashCount",     t, p.dashCount);

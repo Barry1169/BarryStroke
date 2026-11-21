@@ -54,15 +54,16 @@ static void edt1d(const float *f, float *d, int n, int step,
 } // namespace detail
 
 static void alphaDistance(const unsigned char *mask, int w, int h,
-                          float maxDist, float *distOut, bool sharpCorners = false)
+                          float maxDist, float *distOut, float roundness = 1.0f)
 {
     if (!mask || !distOut || w <= 0 || h <= 0)
         return;
 
     const float cap = (maxDist > 0.0f) ? maxDist : 1.0f;
     const size_t N = (size_t) w * (size_t) h;
+    const float r = std::max(0.0f, std::min(1.0f, roundness));
 
-    if (sharpCorners) {
+    auto runSharp = [&](float *out) {
         // Exact Chebyshev distance: max(|dx|, |dy|) gives sharp 90-degree corners.
         std::vector<float> buf(N);
         auto chamfer = [&](bool zeroIsInside) {
@@ -91,11 +92,15 @@ static void alphaDistance(const unsigned char *mask, int w, int h,
         };
         chamfer(false);
         for (size_t i = 0; i < N; ++i)
-            distOut[i] = mask[i] ? buf[i] : 0.0f;
+            out[i] = mask[i] ? buf[i] : 0.0f;
         chamfer(true);
         for (size_t i = 0; i < N; ++i)
             if (!mask[i])
-                distOut[i] = buf[i];
+                out[i] = buf[i];
+    };
+
+    if (r <= 0.0f) {
+        runSharp(distOut);
         return;
     }
 
@@ -129,4 +134,12 @@ static void alphaDistance(const unsigned char *mask, int w, int h,
     for (size_t i = 0; i < N; ++i)
         if (!mask[i])
             distOut[i] = std::min(cap, std::sqrt(f[i]));
+
+    if (r < 1.0f) {
+        std::vector<float> sharp(N);
+        runSharp(sharp.data());
+        float invR = 1.0f - r;
+        for (size_t i = 0; i < N; ++i)
+            distOut[i] = sharp[i] * invR + distOut[i] * r;
+    }
 }

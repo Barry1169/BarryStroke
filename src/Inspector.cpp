@@ -180,11 +180,11 @@ OfxStatus describeInContext(OfxImageEffectHandle effect, OfxPropertySetHandle /*
     defineGroup (ps, "strokeGroup", "Stroke settings", 1, false);
     defineDouble(ps, "strokeWidth",   "Stroke width (%)", 1.0, 0.0, 100.0, 0.0, 5.0, "strokeGroup", false);
     defineChoice(ps, "strokeAlign",   "Stroke position", { "Inside", "Center", "Outside" }, 1, false, "strokeGroup");
-    defineDouble(ps, "strokeGap",     "Gap / Offset (%)", 0.0, -50.0, 50.0, -5.0, 5.0, "strokeGroup", false);
+    defineDouble(ps, "roundness",     "Roundness (%)", 0.0, 0.0, 100.0, 0.0, 100.0, "strokeGroup", false);
     defineDouble(ps, "strokeOpacity", "Stroke opacity (%)", 100.0, 0.0, 100.0, 0.0, 100.0, "strokeGroup", false);
     defineDouble(ps, "feather",       "Feather (%)", 0.0, 0.0, 100.0, 0.0, 20.0, "strokeGroup", false);
     defineChoice(ps, "blendMode",     "Blend mode", { "Normal", "Add", "Screen", "Multiply", "Overlay" }, 0, false, "strokeGroup");
-    defineChoice(ps, "cornerStyle",   "Corner style", { "Round", "Sharp" }, 0, false, "strokeGroup");
+    defineDouble(ps, "strokeGap",     "Gap / Offset (%)", 0.0, -50.0, 50.0, -5.0, 5.0, "strokeGroup", false);
 
     // ---- Style (Solid / Dashed / Dotted) --------------------------------
     defineGroup (ps, "styleGroup", "Style", 1, false);
