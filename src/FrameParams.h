@@ -16,14 +16,14 @@ struct FrameParams {
     // Style (Solid / Dashed / Dotted)
     int    strokeStyle   = 0;              // 0 Solid, 1 Dashed, 2 Dotted
     double dashCount     = 24.0;           // number of dashes/dots around the subject
-    double dashRatio     = 50.0;           // duty cycle percent (10..90)
+    double dashRatio     = 50.0;           // duty cycle percent (0..100)
+    double dashAngle     = 0.0;            // rotation angle in degrees
 
-    // Color (Solid / Gradient / Animated)
-    int    colorMode     = 0;              // 0 Solid, 1 Gradient, 2 Animated
+    // Color (Solid / Gradient)
+    int    colorMode     = 0;              // 0 Solid, 1 Gradient
     double strokeRGB[3]  = { 1.0, 1.0, 1.0 };
     double strokeRGB2[3] = { 0.0, 0.6, 1.0 };
     double gradAngle     = 0.0;            // degrees
-    double colorSpeed    = 1.0;            // cycles per second (approx)
 
     // Glow
     int    glowOn        = 0;

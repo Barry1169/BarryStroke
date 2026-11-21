@@ -42,12 +42,12 @@ FrameParams readFrameParams(OfxParamSetHandle ps, double t)
     getInt   (ps, "strokeStyle",   t, p.strokeStyle);
     getDouble(ps, "dashCount",     t, p.dashCount);
     getDouble(ps, "dashRatio",     t, p.dashRatio);
+    getDouble(ps, "dashAngle",     t, p.dashAngle);
 
     getInt   (ps, "colorMode",     t, p.colorMode);
     getRGB   (ps, "strokeColor",   t, p.strokeRGB);
     getRGB   (ps, "strokeColor2",  t, p.strokeRGB2);
     getDouble(ps, "gradAngle",     t, p.gradAngle);
-    getDouble(ps, "colorSpeed",    t, p.colorSpeed);
 
     getInt   (ps, "glowOn",        t, p.glowOn);
     getDouble(ps, "glowSize",      t, p.glowSize);

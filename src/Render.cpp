@@ -65,13 +65,10 @@ OfxStatus render(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
     const float strokeF[3]  = { (float) fp.strokeRGB[0],  (float) fp.strokeRGB[1],  (float) fp.strokeRGB[2] };
     const float strokeF2[3] = { (float) fp.strokeRGB2[0], (float) fp.strokeRGB2[1], (float) fp.strokeRGB2[2] };
 
-    float animRGB[3] = { strokeF[0], strokeF[1], strokeF[2] };
-    if (fp.colorMode == 2) {
-        hueShiftRGB(strokeF, (float)(time * fp.colorSpeed * 0.04), animRGB);
-    }
     const double gradRad = fp.gradAngle * 3.14159265358979323846 / 180.0;
     const double gradCos = std::cos(gradRad);
     const double gradSin = std::sin(gradRad);
+    const double dashRad = fp.dashAngle * 3.14159265358979323846 / 180.0;
 
     if (srcSt == kOfxStatOK && dstSt == kOfxStatOK) {
         // Read the pixel pointer, bounds, row stride and depth of both images.
@@ -167,7 +164,7 @@ OfxStatus render(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
                         const double cx = 0.5 * (x1 + x2);
                         const double cy = 0.5 * (y1 + y2);
                         const double halfSpan = std::max(1.0, 0.5 * std::hypot((double)(x2 - x1), (double)(y2 - y1)));
-                        const double dashDuty = std::max(0.05, std::min(0.95, fp.dashRatio / 100.0));
+                        const double dashDuty = std::max(0.0, std::min(1.0, fp.dashRatio / 100.0));
                         const double kTwoPi = 6.28318530717958647692;
                         for (int x = 0; x < x2 - x1; ++x) {
                             dp[0] = sp[0];
@@ -179,7 +176,7 @@ OfxStatus render(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
                                 double sdist = (maskRow[x] ? (double) distRow[x] : -(double) distRow[x]) / rscale[0];
                                 double sdistShifted = sdist + strokeGap;
 
-                                float rgb[3] = { animRGB[0], animRGB[1], animRGB[2] };
+                                float rgb[3] = { strokeF[0], strokeF[1], strokeF[2] };
                                 if (fp.colorMode == 1) {
                                     double px = (double)(x1 + x) - cx;
                                     double py = (double) y - cy;
@@ -202,17 +199,19 @@ OfxStatus render(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
 
                                 float sa = strokeAlpha(sdistShifted, strokeW, fp.strokePos, strokeSoft, strokeOpac);
                                 if (sa > 0.0f && fp.strokeStyle != 0) {
-                                    double theta = std::atan2((double) y - cy, (double)(x1 + x) - cx);
-                                    double u = (theta / kTwoPi + 0.5) * fp.dashCount;
-                                    double frac = u - std::floor(u);
-                                    if (fp.strokeStyle == 1) {
-                                        // Dashed
-                                        if (frac > dashDuty) sa = 0.0f;
-                                    } else if (fp.strokeStyle == 2) {
-                                        // Dotted
-                                        double d = std::fabs(frac - 0.5) * 2.0;
-                                        if (d > dashDuty) sa = 0.0f;
-                                        else sa *= (float) std::sqrt(std::max(0.0, 1.0 - (d / dashDuty) * (d / dashDuty)));
+                                    if (dashDuty <= 0.0) {
+                                        sa = 0.0f;
+                                    } else if (dashDuty < 1.0) {
+                                        double theta = std::atan2((double) y - cy, (double)(x1 + x) - cx) - dashRad;
+                                        double u = (theta / kTwoPi + 0.5) * fp.dashCount;
+                                        double frac = u - std::floor(u);
+                                        if (fp.strokeStyle == 1) {
+                                            if (frac > dashDuty) sa = 0.0f;
+                                        } else if (fp.strokeStyle == 2) {
+                                            double d = std::fabs(frac - 0.5) * 2.0;
+                                            if (d > dashDuty) sa = 0.0f;
+                                            else sa *= (float) std::sqrt(std::max(0.0, 1.0 - (d / dashDuty) * (d / dashDuty)));
+                                        }
                                     }
                                 }
                                 compositeStrokeBlend(dp, rgb, sa, fp.blendMode);

@@ -99,7 +99,8 @@ int readInt(OfxParamSetHandle ps, const char *name, int def)
 namespace {
 
 struct UiState {
-    bool strokeOn;
+    bool isDashed;
+    bool isGradient;
 };
 
 struct Rule {
@@ -108,19 +109,18 @@ struct Rule {
 };
 
 const Rule kRules[] = {
-    // Stroke
-    { "strokeGroup",  [](const UiState &s) { return s.strokeOn; } },
-    { "strokeWidth",  [](const UiState &s) { return s.strokeOn; } },
-    { "strokeAlign",  [](const UiState &s) { return s.strokeOn; } },
-    { "strokeColor",  [](const UiState &s) { return s.strokeOn; } },
-    { "strokeOpacity", [](const UiState &s) { return s.strokeOn; } },
-    { "feather",      [](const UiState &s) { return s.strokeOn; } },
+    { "dashCount",    [](const UiState &s) { return s.isDashed; } },
+    { "dashRatio",    [](const UiState &s) { return s.isDashed; } },
+    { "dashAngle",    [](const UiState &s) { return s.isDashed; } },
+    { "strokeColor2", [](const UiState &s) { return s.isGradient; } },
+    { "gradAngle",    [](const UiState &s) { return s.isGradient; } },
 };
 
 UiState readUiState(OfxParamSetHandle ps)
 {
     UiState s;
-    s.strokeOn = readInt(ps, "strokeOn", 1) != 0;
+    s.isDashed   = readInt(ps, "strokeStyle", 0) != 0;
+    s.isGradient = readInt(ps, "colorMode",   0) == 1;
     return s;
 }
 
@@ -148,7 +148,8 @@ void syncVisibility(OfxParamSetHandle paramSet, const void *instKey)
 {
     const UiState s = readUiState(paramSet);
     std::string sig = std::to_string((unsigned long long)(size_t) instKey) + "|"
-                    + (s.strokeOn ? "S" : "s");
+                    + (s.isDashed ? "D" : "d")
+                    + (s.isGradient ? "G" : "g");
     if (sig == gVisSig)
         return;
     gVisSig = sig;
@@ -187,16 +188,16 @@ OfxStatus describeInContext(OfxImageEffectHandle effect, OfxPropertySetHandle /*
     // ---- Style (Solid / Dashed / Dotted) --------------------------------
     defineGroup (ps, "styleGroup", "Style", 1, false);
     defineChoice(ps, "strokeStyle", "Stroke style", { "Solid", "Dashed", "Dotted" }, 0, false, "styleGroup");
-    defineDouble(ps, "dashCount",   "Dash / Dot count", 24.0, 2.0, 200.0, 2.0, 80.0, "styleGroup", false);
-    defineDouble(ps, "dashRatio",   "Dash length (%)", 50.0, 10.0, 90.0, 10.0, 90.0, "styleGroup", false);
+    defineDouble(ps, "dashCount",   "Dash / Dot count", 24.0, 1.0, 200.0, 1.0, 80.0, "styleGroup", true);
+    defineDouble(ps, "dashRatio",   "Dash length (%)", 50.0, 0.0, 100.0, 0.0, 100.0, "styleGroup", true);
+    defineDouble(ps, "dashAngle",   "Dash angle (deg)", 0.0, -360.0, 360.0, 0.0, 360.0, "styleGroup", true);
 
-    // ---- Color (Solid / Gradient / Animated) ----------------------------
+    // ---- Color (Solid / Gradient) ---------------------------------------
     defineGroup (ps, "colorGroup", "Color", 1, false);
-    defineChoice(ps, "colorMode",   "Color mode", { "Solid", "Gradient", "Animated" }, 0, false, "colorGroup");
+    defineChoice(ps, "colorMode",   "Color mode", { "Solid", "Gradient" }, 0, false, "colorGroup");
     defineRGB   (ps, "strokeColor", "Color 1", 1.0, 1.0, 1.0, "colorGroup", false);
-    defineRGB   (ps, "strokeColor2","Color 2", 0.0, 0.6, 1.0, "colorGroup", false);
-    defineDouble(ps, "gradAngle",   "Gradient angle (deg)", 0.0, -360.0, 360.0, 0.0, 360.0, "colorGroup", false);
-    defineDouble(ps, "colorSpeed",  "Animation speed", 1.0, -10.0, 10.0, 0.0, 5.0, "colorGroup", false);
+    defineRGB   (ps, "strokeColor2","Color 2", 0.0, 0.6, 1.0, "colorGroup", true);
+    defineDouble(ps, "gradAngle",   "Gradient angle (deg)", 0.0, -360.0, 360.0, 0.0, 360.0, "colorGroup", true);
 
     // ---- Glow -----------------------------------------------------------
     defineGroup (ps, "glowGroup", "Glow", 1, false);

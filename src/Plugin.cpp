@@ -75,17 +75,7 @@ static OfxStatus onInstanceChanged(OfxImageEffectHandle effect, OfxPropertySetHa
     OfxParamSetHandle ps = nullptr;
     gEffectHost->getParamSet(effect, &ps);
 
-    // Stroke checkbox: turning Stroke on with width 0 would show nothing: give it a small starting width.
-    if (strcmp(changed, "strokeOn") == 0) {
-        OfxParamHandle on = nullptr, w = nullptr;
-        int isOn = 0;
-        double width = 0.0;
-        if (gParamHost->paramGetHandle(ps, "strokeOn", &on, nullptr) == kOfxStatOK && on)
-            gParamHost->paramGetValue(on, &isOn);
-        if (gParamHost->paramGetHandle(ps, "strokeWidth", &w, nullptr) == kOfxStatOK && w)
-            gParamHost->paramGetValue(w, &width);
-        if (isOn && w && width <= 0.0)
-            gParamHost->paramSetValue(w, 0.4);
+    if (strcmp(changed, "strokeStyle") == 0 || strcmp(changed, "colorMode") == 0) {
         gVisSig.clear();
         applyVisibility(ps);
         return kOfxStatOK;
