@@ -1,6 +1,6 @@
 // StrokeTest.cpp
 // Standalone check of Stroke.h (the stroke band / alpha / blend maths) and of
-// how it uses MaskRow.h distances. No OpenFX, no Resolve.
+// how it uses AlphaDist.h distances. No OpenFX, no Resolve.
 // Compile in the x64 Native Tools prompt:
 //   cd /d D:\DavinciCoding\OpenfxProject\BarryStroke\tests
 //   cl /EHsc /std:c++17 StrokeTest.cpp /Fe:StrokeTest.exe
@@ -8,9 +8,7 @@
 #include <cmath>
 #include <vector>
 #include "../src/Stroke.h"
-#include "../src/MaskRow.h"
-
-struct Pt { double x, y; };
+#include "../src/AlphaDist.h"
 
 static int gFails = 0, gChecks = 0;
 static void check(const char *name, bool ok)
@@ -80,31 +78,32 @@ int main()
         check("blend zero", near(dp[0], 0.2, 1e-6) && near(dp[3], 0.8, 1e-6));
     }
 
-    // ---- integration: MaskRow distances feed the stroke alpha ----
-    // Square 0..100. A pixel 2 units inside the edge with width 10 Center soft 2 -> alpha 1.
-    // A pixel 8 units inside -> beyond the band -> alpha 0 (and no distance computed).
+    // ---- integration: AlphaDist distances feed the stroke alpha ----
+    // Square 10x10 inside a 20x20 field. Width 10 Center soft 2: a pixel 2
+    // units inside the edge -> alpha 1; a pixel far inside -> alpha 0.
     {
-        std::vector<Pt> sq = { { 0, 0 }, { 100, 0 }, { 100, 100 }, { 0, 100 } };
-        std::vector<PolyEdge> E;
-        preparePoly(sq, E);
+        const int W = 20, H = 20;
+        std::vector<unsigned char> mask((size_t) W * H, 0);
+        for (int y = 5; y < 15; ++y)
+            for (int x = 5; x < 15; ++x)
+                mask[(size_t) y * W + x] = 1;
+        std::vector<float> dist((size_t) W * H, 0.0f);
+        alphaDistance(mask.data(), W, H, 100.0f, dist.data());
         const double strokeW = 10.0, soft = 2.0;
-        const double band = strokeBand(strokeW, kStrokeCenter, soft, true);
-        float mask[1], dist[1];
-        unsigned char ins[1];
-        // Row y = 50, pixel x = 2 (2 units inside the left edge).
-        buildMaskRow(E, 50.0, 2.0, 1.0, 1, 0.0, false, band, mask, dist, ins);
-        check("row inside flag", ins[0] == 1);
-        check("row dist", near(dist[0], 2.0, 1e-6));
-        double sdist = ins[0] ? (double) dist[0] : -(double) dist[0];
-        check("row alpha inside", near(strokeAlpha(sdist, strokeW, kStrokeCenter, soft, 1.0f), 1.0, 1e-6));
-        // Pixel x = 50 (50 units from the nearest edge): no distance, no stroke.
-        buildMaskRow(E, 50.0, 50.0, 1.0, 1, 0.0, false, band, mask, dist, ins);
-        check("row far no dist", dist[0] < 0.0f);
-        // Pixel x = -2 (2 units outside): signed distance -2 -> alpha 1 (Center band covers it).
-        buildMaskRow(E, 50.0, -2.0, 1.0, 1, 0.0, false, band, mask, dist, ins);
-        check("row outside flag", ins[0] == 0);
-        sdist = ins[0] ? (double) dist[0] : -(double) dist[0];
-        check("row alpha outside", near(strokeAlpha(sdist, strokeW, kStrokeCenter, soft, 1.0f), 1.0, 1e-6));
+        auto sdistAt = [&](int x, int y) {
+            return mask[(size_t) y * W + x] ? (double) dist[(size_t) y * W + x]
+                                            : -(double) dist[(size_t) y * W + x];
+        };
+        // Pixel (6,10): 2 units inside the left edge.
+        check("alpha inside edge", near(sdistAt(6, 10), 2.0, 1e-6));
+        check("alpha inside full", near(strokeAlpha(sdistAt(6, 10), strokeW, kStrokeCenter, soft, 1.0f), 1.0, 1e-6));
+        // Pixel (3,10): 2 units outside the left edge.
+        check("alpha outside edge", near(sdistAt(3, 10), -2.0, 1e-6));
+        check("alpha outside full", near(strokeAlpha(sdistAt(3, 10), strokeW, kStrokeCenter, soft, 1.0f), 1.0, 1e-6));
+        // Pixel (9,10): 5 units inside (centre) -> band edge -> 0.5.
+        check("alpha centre half", near(strokeAlpha(sdistAt(9, 10), strokeW, kStrokeCenter, soft, 1.0f), 0.5, 1e-6));
+        // Pixel (0,10): 5 units outside -> band edge -> 0.5.
+        check("alpha far half", near(strokeAlpha(sdistAt(0, 10), strokeW, kStrokeCenter, soft, 1.0f), 0.5, 1e-6));
     }
 
     printf("%d checks, %d failures\n", gChecks, gFails);

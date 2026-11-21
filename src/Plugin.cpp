@@ -1,23 +1,17 @@
 // Plugin.cpp
-// BarryStroke: a stroke-only outline effect for DaVinci Resolve (OpenFX image effect).
-// It draws a stroke around a polygon outline over the source image.
+// BarryStroke: a standalone stroke effect for DaVinci Resolve (OpenFX image effect).
+// It draws a stroke around the input's visible (alpha) boundaries automatically.
 // This file only describes the plugin and sends each action to the right place.
 //   Host.*        host pointers and the logger
 //   Inspector.*   parameters, and showing / hiding them
-//   Overlay.*     the viewer overlay (draw, click, drag)
-//   ShapeData.*   reading and writing the points, order and presets
 //   FrameParams.* every plain parameter, read once per frame
 //   Render.*      the pixel loop
-//   Stroke.h MaskRow.h Geometry.h Rounding.h   pure maths, no OpenFX types
+//   Stroke.h AlphaDist.h   pure maths, no OpenFX types
 #include <cstdio>
 #include <cstring>
-#include <vector>
 #include "Host.h"
 #include "Inspector.h"
-#include "Overlay.h"
 #include "Render.h"
-#include "ShapeData.h"
-#include "ShapeTemplates.h"
 
 // Called by the host first, before anything else. It may only store the
 // pointer; the header forbids calling any OFX function here.
@@ -66,13 +60,10 @@ static OfxStatus describe(OfxImageEffectHandle effect)
 
     gPropHost->propSetInt(effectProps, kOfxImageEffectPropSupportsMultipleClipDepths, 0, 0);
 
-    // Ask the host to show an overlay. V2 means we draw with the DrawSuite.
-    gPropHost->propSetPointer(effectProps, kOfxImageEffectPluginPropOverlayInteractV2, 0, (void *) overlayMainV2);
-
     return kOfxStatOK;
 }
 
-// A parameter changed: the Shape dropdown, the Clear button, and the Stroke checkbox.
+// A parameter changed: the Stroke checkbox.
 static OfxStatus onInstanceChanged(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
 {
     char *changed = nullptr;
@@ -83,30 +74,6 @@ static OfxStatus onInstanceChanged(OfxImageEffectHandle effect, OfxPropertySetHa
 
     OfxParamSetHandle ps = nullptr;
     gEffectHost->getParamSet(effect, &ps);
-
-    // Shape dropdown: 0 = Custom (do nothing), 1..6 = Triangle, Rectangle, Circle, Star, Heart, Arrow.
-    // A preset is loaded only when the dropdown really moves to a DIFFERENT shape than the last one loaded.
-    if (strcmp(changed, "shapeKind") == 0) {
-        OfxParamHandle h = nullptr, dh = nullptr;
-        int kind = 0, done = 0;
-        if (gParamHost->paramGetHandle(ps, "shapeKind", &h, nullptr) == kOfxStatOK && h)
-            gParamHost->paramGetValue(h, &kind);
-        if (gParamHost->paramGetHandle(ps, "shapeDone", &dh, nullptr) == kOfxStatOK && dh)
-            gParamHost->paramGetValue(dh, &done);
-        char kl[96];
-        sprintf_s(kl, sizeof(kl), "shapeKind event: kind %d, last loaded %d", kind, done);
-        logLine(kl);
-
-        if (kind == 0) {
-            if (done != 0 && dh)
-                gParamHost->paramSetValue(dh, 0);
-            return kOfxStatOK;
-        }
-        if (kind >= 1 && kind <= kTemplateCount && kind != done) {
-            applyShapeTemplate(effect, inArgs, kind - 1);
-        }
-        return kOfxStatOK;
-    }
 
     // Stroke checkbox: turning Stroke on with width 0 would show nothing: give it a small starting width.
     if (strcmp(changed, "strokeOn") == 0) {
@@ -119,15 +86,11 @@ static OfxStatus onInstanceChanged(OfxImageEffectHandle effect, OfxPropertySetHa
             gParamHost->paramGetValue(w, &width);
         if (isOn && w && width <= 0.0)
             gParamHost->paramSetValue(w, 0.4);
-        std::vector<OfxPointD> vpts;
-        std::vector<int> vslots;
-        readSlotPoints(ps, 0.0, vpts, &vslots);
         gVisSig.clear();
-        applyVisibility(ps, vslots);
+        applyVisibility(ps);
         return kOfxStatOK;
     }
 
-    if (strcmp(changed, "clearShape") == 0)     { writeOrderOnly(effect, ""); return kOfxStatOK; }
     return kOfxStatReplyDefault;
 }
 

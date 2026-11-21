@@ -40,13 +40,7 @@ FrameParams readFrameParams(OfxParamSetHandle ps, double t)
     getInt(ps, "strokeAlign", t, align);
     p.strokePos = (align == 0) ? kStrokeInside : (align == 1) ? kStrokeCenter : kStrokeOutside;
 
-    getDouble(ps, "feather",       t, p.feather);
-    getDouble(ps, "offsetX",       t, p.offX);
-    getDouble(ps, "offsetY",       t, p.offY);
-    getDouble(ps, "shapeScale",    t, p.scalePct);
-    getDouble(ps, "shapeRotation", t, p.rotDeg);
-    getDouble(ps, "cornerRadius",  t, p.cornerPct);
-    getDouble(ps, "cornerSmoothing", t, p.cornerSmooth);
+    getDouble(ps, "feather", t, p.feather);
 
     // The checkbox switches the whole feature off.
     if (!p.strokeOn) p.strokeW = 0.0;

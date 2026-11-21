@@ -11,8 +11,5 @@ extern OfxPropertySuiteV1    *gPropHost;
 extern OfxParameterSuiteV1   *gParamHost;
 extern OfxDrawSuiteV1        *gDrawHost;    // optional suite
 
-// Maximum number of points. One keyframeable parameter pair per point.
-static const int kMaxPts = 16;
-
 // Debug log. Off unless OFX_DEBUG_LOG is 1 (see Host.cpp).
 void logLine(const char *text);

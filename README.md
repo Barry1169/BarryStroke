@@ -1,26 +1,24 @@
 # BarryStroke
 
-A stroke-only outline effect for DaVinci Resolve (OpenFX image effect).
-It draws a stroke around a polygon outline over the source image.
+A standalone stroke effect for DaVinci Resolve (OpenFX image effect).
+It draws a stroke around the input's visible boundaries automatically —
+no shapes to create, no points to edit.
 
-Ported from [BarryShape](https://github.com/Barry1169/BarryShape): only the
-stroke functionality and its Inspector UI, plus the minimal outline
-infrastructure the stroke needs (points, presets, overlay editing,
-corner radius, transform). Fill, gradients, morphing and shape keyframes
-are intentionally not included.
+The stroke follows the input's alpha edge (alpha > 50% counts as visible),
+so it works on transparent PNGs, graphics, and any node with alpha.
+Inputs with no alpha edge (e.g. fully opaque video) have no visible
+boundary, so no stroke is drawn.
+
+Stroke maths ported from [BarryShape](https://github.com/Barry1169/BarryShape).
 
 ## Inspector
 
-- **Shape** — pick a preset outline (Triangle, Rectangle, Circle, Star,
-  Heart, Arrow) or Custom, then edit points in the viewer.
-- **Stroke** — on/off, width (%), position (Inside / Center / Outside),
-  color, opacity (%).
-- **Corner radius** — rounds the outline the stroke follows.
-- **Transform** — Feather (also the stroke softness), Offset, Scale, Rotation.
-- **Points** — the outline points (advanced), Auto Key.
-
-A new effect starts as a Triangle outline with the stroke off. Turn
-**Stroke** on to see the stroke.
+- **Stroke** — on/off (on by default, so the stroke appears immediately)
+- **Stroke width (%)** — percent of frame height
+- **Stroke position** — Inside / Center / Outside
+- **Stroke color**
+- **Stroke opacity (%)**
+- **Feather (%)** — softness of the stroke edge
 
 ## Build
 
@@ -42,9 +40,7 @@ Standalone checks of the pure maths (no OpenFX, no Resolve):
 ```
 cd tests
 cl /EHsc /std:c++17 StrokeTest.cpp /Fe:StrokeTest.exe
-cl /EHsc /std:c++17 MaskRowTest.cpp /Fe:MaskRowTest.exe
-cl /EHsc /std:c++17 ShapeTemplatesTest.cpp /Fe:ShapeTemplatesTest.exe
-cl /EHsc /std:c++17 SmoothingTest.cpp /Fe:SmoothingTest.exe
+cl /EHsc /std:c++17 AlphaDistTest.cpp /Fe:AlphaDistTest.exe
 ```
 
 ## Layout
@@ -53,13 +49,8 @@ cl /EHsc /std:c++17 SmoothingTest.cpp /Fe:SmoothingTest.exe
 src/Plugin.cpp      plugin description + action routing
 src/Host.*          host suites + logger
 src/Inspector.*     parameters + show/hide rules
-src/Overlay.*       viewer overlay (draw, click, drag points)
-src/ShapeData.*     outline points, order, presets
 src/FrameParams.*   per-frame parameter snapshot
 src/Render.cpp      pixel loop (stroke over source)
 src/Stroke.h        stroke band / alpha / blend maths
-src/MaskRow.h       per-row edge distance maths
-src/Geometry.h      polygon helpers
-src/Rounding.h      corner rounding
-src/ShapeTemplates.h preset outlines
+src/AlphaDist.h     distance to the alpha edge
 ```

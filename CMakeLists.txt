@@ -13,8 +13,6 @@ add_library(BarryStroke MODULE
     src/Plugin.cpp
     src/Host.cpp
     src/Inspector.cpp
-    src/Overlay.cpp
-    src/ShapeData.cpp
     src/FrameParams.cpp
     src/Render.cpp
 )
