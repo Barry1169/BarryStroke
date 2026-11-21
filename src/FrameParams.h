@@ -7,8 +7,7 @@
 
 struct FrameParams {
     // Stroke
-    int    strokeOn   = 1;              // Stroke checkbox: off = no stroke
-    double strokeW    = 0.4;            // percent of frame height
+    double strokeW    = 1.0;            // percent of frame height
     double strokeRGB[3] = { 1.0, 1.0, 1.0 };
     double strokeOpacity = 100.0;       // percent
     int    strokePos  = kStrokeCenter;  // maths numbers: 0 Center, 1 Inside, 2 Outside

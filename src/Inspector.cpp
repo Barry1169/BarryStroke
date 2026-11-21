@@ -175,15 +175,13 @@ OfxStatus describeInContext(OfxImageEffectHandle effect, OfxPropertySetHandle /*
     gEffectHost->getParamSet(effect, &ps);
 
     // ---- Stroke ---------------------------------------------------------
-    // The Stroke folder is hidden until the Stroke checkbox is on.
-    // On by default: the stroke appears as soon as the effect is applied.
-    defineBool  (ps, "strokeOn", "Stroke", 1);
-    defineGroup (ps, "strokeGroup", "Stroke settings", 1, true);
-    defineDouble(ps, "strokeWidth", "Stroke width (%)", 0.4, 0.0, 100.0, 0.0, 5.0, "strokeGroup", true);
-    defineChoice(ps, "strokeAlign", "Stroke position", { "Inside", "Center", "Outside" }, 1, true, "strokeGroup");
-    defineRGB   (ps, "strokeColor", "Stroke color", 1.0, 1.0, 1.0, "strokeGroup", true);
-    defineDouble(ps, "strokeOpacity", "Stroke opacity (%)", 100.0, 0.0, 100.0, 0.0, 100.0, "strokeGroup", true);
-    defineDouble(ps, "feather", "Feather (%)", 0.0, 0.0, 100.0, 0.0, 20.0, "strokeGroup", true);
+    // Always active as soon as the effect is applied.
+    defineGroup (ps, "strokeGroup", "Stroke settings", 1, false);
+    defineDouble(ps, "strokeWidth", "Stroke width (%)", 1.0, 0.0, 100.0, 0.0, 5.0, "strokeGroup", false);
+    defineChoice(ps, "strokeAlign", "Stroke position", { "Inside", "Center", "Outside" }, 1, false, "strokeGroup");
+    defineRGB   (ps, "strokeColor", "Stroke color", 1.0, 1.0, 1.0, "strokeGroup", false);
+    defineDouble(ps, "strokeOpacity", "Stroke opacity (%)", 100.0, 0.0, 100.0, 0.0, 100.0, "strokeGroup", false);
+    defineDouble(ps, "feather", "Feather (%)", 0.0, 0.0, 100.0, 0.0, 20.0, "strokeGroup", false);
 
     return kOfxStatOK;
 }

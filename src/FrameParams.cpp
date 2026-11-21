@@ -31,7 +31,6 @@ FrameParams readFrameParams(OfxParamSetHandle ps, double t)
 {
     FrameParams p;
 
-    getInt   (ps, "strokeOn",     t, p.strokeOn);
     getDouble(ps, "strokeWidth",  t, p.strokeW);
     getRGB   (ps, "strokeColor",  t, p.strokeRGB);
     getDouble(ps, "strokeOpacity", t, p.strokeOpacity);
@@ -41,8 +40,5 @@ FrameParams readFrameParams(OfxParamSetHandle ps, double t)
     p.strokePos = (align == 0) ? kStrokeInside : (align == 1) ? kStrokeCenter : kStrokeOutside;
 
     getDouble(ps, "feather", t, p.feather);
-
-    // The checkbox switches the whole feature off.
-    if (!p.strokeOn) p.strokeW = 0.0;
     return p;
 }
