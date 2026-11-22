@@ -107,8 +107,8 @@ OfxStatus render(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
 
             // Distance field over the render window expanded by the stroke reach,
             // so pixels near the window edge still get a correct distance.
-            std::vector<unsigned char> mask;
-            std::vector<float> dist;
+            static thread_local std::vector<unsigned char> mask;
+            static thread_local std::vector<float> dist;
             int ex1 = x1, ey1 = y1, ew = 0;
             bool haveDist = false;
             if (bpp == 16 && band > 0.0 && x2 > x1 && y2 > y1) {
