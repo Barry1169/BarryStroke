@@ -137,7 +137,7 @@ OfxStatus render(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
                     // No alpha edge in view (fully visible or fully empty): no stroke.
                     if (anyIn && anyOut) {
                         dist.assign((size_t) ew * (size_t) eh, 0.0f);
-                        alphaDistance(mask.data(), ew, eh, (float) (maxDistPx + 1.0), dist.data(), 0.0f);
+                        alphaDistance(mask.data(), ew, eh, (float) (maxDistPx + 1.0), dist.data(), (float)(fp.roundness / 100.0));
                         haveDist = true;
                     }
                 }
@@ -193,7 +193,21 @@ OfxStatus render(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
                                         double theta = std::atan2((double) y - cy, (double)(x1 + x) - cx) - dashRad;
                                         double u = (theta / kTwoPi + 0.5) * (double) fp.dashCount;
                                         double frac = u - std::floor(u);
-                                        if (frac > dashDuty) dashMask = 0.0f;
+                                        if (frac > dashDuty) {
+                                            dashMask = 0.0f;
+                                        } else if (fp.dashCap == 1) {
+                                            // True crisp round cap: narrow the stroke width into a semicircle at each end
+                                            double edge = std::min(frac, dashDuty - frac);
+                                            double capLen = std::min(dashDuty * 0.5, 0.12);
+                                            if (edge < capLen && capLen > 1e-5) {
+                                                double uCap = 1.0 - edge / capLen; // 1 at tip, 0 at body
+                                                double halfW = std::sqrt(std::max(0.0, 1.0 - uCap * uCap));
+                                                double dFromCentre = std::fabs(sdist - strokeCentre(strokeW, fp.strokePos));
+                                                double rCap = (strokeW * 0.5) * halfW;
+                                                double aCap = 0.5 + (rCap - dFromCentre) / strokeSoft;
+                                                dashMask = (float) std::max(0.0, std::min(1.0, aCap));
+                                            }
+                                        }
                                     }
                                 }
 
