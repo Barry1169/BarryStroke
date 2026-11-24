@@ -11,6 +11,7 @@ struct FrameParams {
     double strokeOpacity = 100.0;          // percent
     double feather       = 0.0;            // percent of frame height (the stroke softness)
     int    blendMode     = kBlendNormal;   // 0 Normal, 1 Add, 2 Screen, 3 Multiply, 4 Overlay
+    double roundness     = 0.0;            // 0 = Sharp (Chebyshev), 100 = Round (Euclidean)
 
     // Style (Solid / Dashed)
     int    strokeStyle   = 0;              // 0 Solid, 1 Dashed

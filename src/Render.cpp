@@ -137,7 +137,7 @@ OfxStatus render(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
                     // No alpha edge in view (fully visible or fully empty): no stroke.
                     if (anyIn && anyOut) {
                         dist.assign((size_t) ew * (size_t) eh, 0.0f);
-                        alphaDistance(mask.data(), ew, eh, (float) (maxDistPx + 1.0), dist.data(), 0.0f);
+                        alphaDistance(mask.data(), ew, eh, (float) (maxDistPx + 1.0), dist.data(), (float)(fp.roundness / 100.0));
                         haveDist = true;
                     }
                 }
