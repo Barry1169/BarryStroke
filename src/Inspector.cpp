@@ -125,6 +125,7 @@ const Rule kRules[] = {
     { "dashCount",     [](const UiState &s) { return s.isDashed; } },
     { "dashRatio",     [](const UiState &s) { return s.isDashed; } },
     { "dashAngle",     [](const UiState &s) { return s.isDashed; } },
+    { "dashCap",       [](const UiState &s) { return s.isDashed; } },
     { "strokeColor2",  [](const UiState &s) { return s.isGradient; } },
     { "gradAngle",     [](const UiState &s) { return s.isGradient; } },
     { "glowSize",      [](const UiState &s) { return s.glowOn; } },
@@ -199,7 +200,7 @@ OfxStatus describeInContext(OfxImageEffectHandle effect, OfxPropertySetHandle /*
     defineChoice(ps, "strokeAlign",   "Stroke position", { "Inside", "Center", "Outside" }, 1, false, "strokeGroup");
     defineDouble(ps, "strokeOpacity", "Stroke opacity (%)", 100.0, 0.0, 100.0, 0.0, 100.0, "strokeGroup", false);
     defineDouble(ps, "feather",       "Feather (%)", 0.0, 0.0, 100.0, 0.0, 20.0, "strokeGroup", false);
-    defineDouble(ps, "roundness",     "Roundness (%)", 0.0, 0.0, 200.0, 0.0, 200.0, "strokeGroup", false);
+    defineDouble(ps, "roundness",     "Roundness (%)", 0.0, 0.0, 100.0, 0.0, 100.0, "strokeGroup", false);
     defineChoice(ps, "blendMode",     "Blend mode", { "Normal", "Add", "Screen", "Multiply", "Overlay" }, 0, false, "strokeGroup");
 
     // ---- Style (Solid / Dashed) -----------------------------------------
@@ -208,6 +209,7 @@ OfxStatus describeInContext(OfxImageEffectHandle effect, OfxPropertySetHandle /*
     defineInt   (ps, "dashCount",   "Dash count", 24, 1, 200, 1, 80, "styleGroup", true);
     defineDouble(ps, "dashRatio",   "Dash length (%)", 50.0, 0.0, 100.0, 0.0, 100.0, "styleGroup", true);
     defineDouble(ps, "dashAngle",   "Dash angle (deg)", 0.0, -360.0, 360.0, 0.0, 360.0, "styleGroup", true);
+    defineChoice(ps, "dashCap",     "Dash cap", { "Flat", "Round" }, 0, true, "styleGroup");
 
     // ---- Color (Solid / Gradient) ---------------------------------------
     defineGroup (ps, "colorGroup", "Color", 1, false);

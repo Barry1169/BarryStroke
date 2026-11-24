@@ -43,6 +43,7 @@ FrameParams readFrameParams(OfxParamSetHandle ps, double t)
     getInt   (ps, "dashCount",     t, p.dashCount);
     getDouble(ps, "dashRatio",     t, p.dashRatio);
     getDouble(ps, "dashAngle",     t, p.dashAngle);
+    getInt   (ps, "dashCap",       t, p.dashCap);
 
     getInt   (ps, "colorMode",     t, p.colorMode);
     getRGB   (ps, "strokeColor",   t, p.strokeRGB);

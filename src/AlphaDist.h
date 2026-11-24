@@ -61,7 +61,7 @@ static void alphaDistance(const unsigned char *mask, int w, int h,
 
     const float cap = (maxDist > 0.0f) ? maxDist : 1.0f;
     const size_t N = (size_t) w * (size_t) h;
-    const float r = std::max(0.0f, std::min(2.0f, roundness));
+    const float r = std::max(0.0f, std::min(1.0f, roundness));
 
     auto runSharp = [&](float *out) {
         // Exact Chebyshev distance: max(|dx|, |dy|) gives sharp 90-degree corners.

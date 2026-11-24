@@ -193,7 +193,17 @@ OfxStatus render(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
                                         double theta = std::atan2((double) y - cy, (double)(x1 + x) - cx) - dashRad;
                                         double u = (theta / kTwoPi + 0.5) * (double) fp.dashCount;
                                         double frac = u - std::floor(u);
-                                        if (frac > dashDuty) dashMask = 0.0f;
+                                        if (frac > dashDuty) {
+                                            dashMask = 0.0f;
+                                        } else if (fp.dashCap == 1) {
+                                            // Round cap: taper near both ends of the dash
+                                            double edge = std::min(frac, dashDuty - frac);
+                                            double capLen = std::min(dashDuty * 0.5, 0.15);
+                                            if (edge < capLen && capLen > 1e-5) {
+                                                double t = edge / capLen;
+                                                dashMask = (float) std::sqrt(std::max(0.0, t * (2.0 - t)));
+                                            }
+                                        }
                                     }
                                 }
 

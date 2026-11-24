@@ -18,6 +18,7 @@ struct FrameParams {
     int    dashCount     = 24;             // number of dashes around the subject
     double dashRatio     = 50.0;           // duty cycle percent (0..100)
     double dashAngle     = 0.0;            // rotation angle in degrees
+    int    dashCap       = 0;              // 0 Flat, 1 Round
 
     // Color (Solid / Gradient)
     int    colorMode     = 0;              // 0 Solid, 1 Gradient
