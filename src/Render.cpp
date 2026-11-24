@@ -196,12 +196,16 @@ OfxStatus render(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
                                         if (frac > dashDuty) {
                                             dashMask = 0.0f;
                                         } else if (fp.dashCap == 1) {
-                                            // Round cap: taper near both ends of the dash
+                                            // True crisp round cap: narrow the stroke width into a semicircle at each end
                                             double edge = std::min(frac, dashDuty - frac);
-                                            double capLen = std::min(dashDuty * 0.5, 0.15);
+                                            double capLen = std::min(dashDuty * 0.5, 0.12);
                                             if (edge < capLen && capLen > 1e-5) {
-                                                double t = edge / capLen;
-                                                dashMask = (float) std::sqrt(std::max(0.0, t * (2.0 - t)));
+                                                double uCap = 1.0 - edge / capLen; // 1 at tip, 0 at body
+                                                double halfW = std::sqrt(std::max(0.0, 1.0 - uCap * uCap));
+                                                double dFromCentre = std::fabs(sdist - strokeCentre(strokeW, fp.strokePos));
+                                                double rCap = (strokeW * 0.5) * halfW;
+                                                double aCap = 0.5 + (rCap - dFromCentre) / strokeSoft;
+                                                dashMask = (float) std::max(0.0, std::min(1.0, aCap));
                                             }
                                         }
                                     }
