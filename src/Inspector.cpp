@@ -199,8 +199,8 @@ OfxStatus describeInContext(OfxImageEffectHandle effect, OfxPropertySetHandle /*
     defineChoice(ps, "strokeAlign",   "Stroke position", { "Inside", "Center", "Outside" }, 1, false, "strokeGroup");
     defineDouble(ps, "strokeOpacity", "Stroke opacity (%)", 100.0, 0.0, 100.0, 0.0, 100.0, "strokeGroup", false);
     defineDouble(ps, "feather",       "Feather (%)", 0.0, 0.0, 100.0, 0.0, 20.0, "strokeGroup", false);
+    defineDouble(ps, "roundness",     "Roundness (%)", 0.0, 0.0, 200.0, 0.0, 200.0, "strokeGroup", false);
     defineChoice(ps, "blendMode",     "Blend mode", { "Normal", "Add", "Screen", "Multiply", "Overlay" }, 0, false, "strokeGroup");
-    defineDouble(ps, "roundness",     "Roundness (%)", 0.0, 0.0, 100.0, 0.0, 100.0, "strokeGroup", false);
 
     // ---- Style (Solid / Dashed) -----------------------------------------
     defineGroup (ps, "styleGroup", "Style", 1, false);
