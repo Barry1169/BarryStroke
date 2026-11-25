@@ -204,15 +204,21 @@ OfxStatus render(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
 
                                 // Dash mask (1.0 = visible, 0.0 = gap)
                                 float dashMask = 1.0f;
+                                float glowDashMask = 1.0f;
                                 if (fp.strokeStyle != 0) {
                                     if (dashDuty <= 0.0) {
                                         dashMask = 0.0f;
+                                        glowDashMask = 0.0f;
                                     } else if (dashDuty < 1.0) {
                                         double theta = std::atan2((double) y - cy, (double)(x1 + x) - cx) - dashRad;
                                         double u = (theta / kTwoPi + 0.5) * (double) fp.dashCount;
                                         double frac = u - std::floor(u);
                                         if (frac > dashDuty) {
                                             dashMask = 0.0f;
+                                            // Softly fade glow past the dash ends instead of a hard radial cut
+                                            double gapDist = std::min(frac - dashDuty, 1.0 - frac);
+                                            double glowFade = 0.15;
+                                            glowDashMask = (gapDist < glowFade) ? (float)(1.0 - gapDist / glowFade) : 0.0f;
                                         } else if (fp.dashCap == 1) {
                                             // True crisp round cap: narrow the stroke width into a semicircle at each end
                                             double edge = std::min(frac, dashDuty - frac);
@@ -230,11 +236,11 @@ OfxStatus render(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
                                 }
 
                                 // Glow (outer soft bloom around the stroke)
-                                if (fp.glowOn && glowSize > 0.0 && glowOpac > 0.0f && dashMask > 0.0f) {
+                                if (fp.glowOn && glowSize > 0.0 && glowOpac > 0.0f && glowDashMask > 0.0f) {
                                     double glowDist = std::fabs(sdist - strokeCentre(strokeW, fp.strokePos)) - strokeW * 0.5;
                                     if (glowDist < glowSize) {
                                         double g = 1.0 - std::max(0.0, glowDist) / glowSize;
-                                        float ga = (float)(g * g) * glowOpac * dashMask;
+                                        float ga = (float)(g * g) * glowOpac * glowDashMask;
                                         compositeStrokeBlend(dp, rgb, ga, fp.blendMode);
                                     }
                                 }
