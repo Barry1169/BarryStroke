@@ -146,3 +146,37 @@ static void alphaDistance(const unsigned char *mask, int w, int h,
             distOut[i] = std::max(0.0f, sharp[i] * invR + distOut[i] * r);
     }
 }
+
+// Morphological opening (erode by radiusPx, then dilate by radiusPx) using
+// exact Euclidean distance. Produces true circular corner arcs of any radius.
+static void alphaDistanceRounded(const unsigned char *mask, int w, int h,
+                                 float maxDist, float radiusPx,
+                                 float *distOut, unsigned char *maskOut)
+{
+    if (!mask || !distOut || !maskOut || w <= 0 || h <= 0)
+        return;
+    const size_t N = (size_t) w * (size_t) h;
+    if (radiusPx <= 0.5f) {
+        for (size_t i = 0; i < N; ++i) maskOut[i] = mask[i];
+        alphaDistance(mask, w, h, maxDist, distOut, 0.0f);
+        return;
+    }
+
+    static thread_local std::vector<float> tmpDist;
+    static thread_local std::vector<unsigned char> eroded;
+    tmpDist.resize(N);
+    eroded.resize(N);
+
+    // 1. Erode by radiusPx
+    alphaDistance(mask, w, h, radiusPx + 1.0f, tmpDist.data(), 1.0f);
+    for (size_t i = 0; i < N; ++i)
+        eroded[i] = (mask[i] && tmpDist[i] >= radiusPx) ? 1 : 0;
+
+    // 2. Dilate by radiusPx -> opened mask
+    alphaDistance(eroded.data(), w, h, radiusPx + maxDist + 1.0f, tmpDist.data(), 1.0f);
+    for (size_t i = 0; i < N; ++i)
+        maskOut[i] = (eroded[i] || tmpDist[i] <= radiusPx) ? 1 : 0;
+
+    // 3. Exact Euclidean distance to the rounded boundary
+    alphaDistance(maskOut, w, h, maxDist, distOut, 1.0f);
+}
