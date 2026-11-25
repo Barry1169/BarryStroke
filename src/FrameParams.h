@@ -11,12 +11,14 @@ struct FrameParams {
     double strokeOpacity = 100.0;          // percent
     double feather       = 0.0;            // percent of frame height (the stroke softness)
     int    blendMode     = kBlendNormal;   // 0 Normal, 1 Add, 2 Screen, 3 Multiply, 4 Overlay
+    double roundness     = 0.0;            // 0 = Sharp (Chebyshev), 100 = Round (Euclidean)
 
     // Style (Solid / Dashed)
     int    strokeStyle   = 0;              // 0 Solid, 1 Dashed
     int    dashCount     = 24;             // number of dashes around the subject
     double dashRatio     = 50.0;           // duty cycle percent (0..100)
     double dashAngle     = 0.0;            // rotation angle in degrees
+    int    dashCap       = 0;              // 0 Flat, 1 Round
 
     // Color (Solid / Gradient)
     int    colorMode     = 0;              // 0 Solid, 1 Gradient
