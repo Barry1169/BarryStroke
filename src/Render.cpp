@@ -134,10 +134,22 @@ OfxStatus render(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
                             sp += 4;
                         }
                     }
-                    // No alpha edge in view (fully visible or fully empty): no stroke.
+                    // No alpha edge in view: if fully opaque (JPEG/MP4/video), stroke the frame border.
                     if (anyIn && anyOut) {
                         dist.assign((size_t) ew * (size_t) eh, 0.0f);
                         alphaDistance(mask.data(), ew, eh, (float) (maxDistPx + 1.0), dist.data(), (float)(fp.roundness / 100.0));
+                        haveDist = true;
+                    } else if (anyIn && !anyOut) {
+                        dist.assign((size_t) ew * (size_t) eh, 0.0f);
+                        for (int y = ey1; y < ey2; ++y) {
+                            int dy = std::min(y - srcB[1], srcB[3] - 1 - y) + 1;
+                            float *dpRow = &dist[(size_t)(y - ey1) * (size_t) ew];
+                            for (int x = 0; x < ew; ++x) {
+                                int gx = ex1 + x;
+                                int dx = std::min(gx - srcB[0], srcB[2] - 1 - gx) + 1;
+                                dpRow[x] = (float) std::min(dx, dy);
+                            }
+                        }
                         haveDist = true;
                     }
                 }
