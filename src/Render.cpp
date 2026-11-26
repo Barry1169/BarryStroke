@@ -137,7 +137,8 @@ OfxStatus render(OfxImageEffectHandle effect, OfxPropertySetHandle inArgs)
                     // No alpha edge in view: if fully opaque (JPEG/MP4/video), stroke the frame border.
                     if (anyIn && anyOut) {
                         dist.assign((size_t) ew * (size_t) eh, 0.0f);
-                        alphaDistance(mask.data(), ew, eh, (float) (maxDistPx + 1.0), dist.data(), (float)(fp.roundness / 100.0));
+                        float radiusPx = (float)((fp.roundness / 100.0) * (ext[1] / 100.0) * 0.25 * rscale[0]);
+                        alphaDistanceRounded(mask.data(), ew, eh, (float) (maxDistPx + 1.0), radiusPx, dist.data(), mask.data());
                         haveDist = true;
                     } else if (anyIn && !anyOut) {
                         double padPx = (fp.strokePos == kStrokeOutside) ? (strokeW * rscale[0])
